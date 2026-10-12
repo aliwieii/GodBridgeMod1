@@ -1,0 +1,54 @@
+name: Build God Bridge Mod
+
+on:
+workflow_dispatch:
+push:
+paths:
+- '.github/workflows/main.yml'
+- 'GodBridgeMod-1.0.0-source.zip'
+
+jobs:
+build:
+runs-on: ubuntu-latest
+
+steps:
+  - name: Checkout repository
+    uses: actions/checkout@v4
+
+  - name: Set up Java 8
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '8'
+
+  - name: Install Gradle
+    uses: gradle/actions/setup-gradle@v4
+    with:
+      gradle-version: '2.14.1'
+
+  - name: Extract source project
+    run: |
+      mkdir -p project
+      unzip -o GodBridgeMod-1.0.0-source.zip -d project
+      find project -name build.gradle -print
+
+  - name: Build God Bridge
+    shell: bash
+    run: |
+      BUILD_FILE="$(find project -name build.gradle -print -quit)"
+      if [ -z "$BUILD_FILE" ]; then
+        echo "ERROR: build.gradle was not found"
+        exit 1
+      fi
+      cd "$(dirname "$BUILD_FILE")"
+      gradle --no-daemon build
+
+  - name: Upload build files
+    if: always()
+    uses: actions/upload-artifact@v4
+    with:
+      name: GodBridge-Build-Results
+      path: |
+        project/**/build/libs/*.jar
+        project/**/build/reports/**
+      if-no-files-found: warn
